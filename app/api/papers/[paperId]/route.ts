@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { fetchLatestMedicalAIPapers } from '@/app/lib/arxiv';
 
 export async function GET(
-  request: Request,
-  { params }: { params: { paperId: string } }
+  request: NextRequest,
+  context: { params: Promise<{ paperId: string }> }
 ) {
-  const paperId = params.paperId;
+  const { paperId } = await context.params;
   
   try {
     // Fetch all papers and find the one with matching ID
