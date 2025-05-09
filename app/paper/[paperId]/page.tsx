@@ -1,36 +1,39 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useAtom } from "jotai";
-import Link from "next/link";
-import { ChevronLeft, Calendar, User, ExternalLink, Share2, Bookmark } from "lucide-react";
 import { Navbar } from "@/app/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { papersAtom, Paper } from "@/app/atoms/paperAtoms";
+import { ChevronLeft, Calendar, User, ExternalLink } from "lucide-react";
+import { ClientBookmarkButton, ClientShareButton } from "./client-components";
 
-interface PaperDetailPageProps {
-  params: {
-    paperId: string;
-  };
+// Define the Paper interface
+interface Paper {
+  id: string;
+  title: string;
+  authors: string[];
+  abstract: string;
+  publicationDate: string;
+  url: string;
+  categories: string[];
+  doi?: string;
+  simplifiedSummary?: string;
+  significanceAnalysis?: string;
 }
 
-export default function PaperDetailPage({ params }: PaperDetailPageProps) {
-  const { paperId } = params;
-  const [papers] = useAtom(papersAtom);
-  const [paper, setPaper] = useState<Paper | null>(null);
-  const [isBookmarked, setIsBookmarked] = useState(false);
-
-  useEffect(() => {
-    const foundPaper = papers.find((p) => p.id === paperId);
-    if (foundPaper) {
-      setPaper(foundPaper);
-    }
-  }, [paperId, papers]);
-
-  // 格式化日期
+// Use the correct prop types for Next.js 15
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ paperId: string }>;
+}) {
+  // Await the params - this is required in Next.js 15
+  const { paperId } = await params;
+  
+  // Fetch paper data 
+  const paper = await fetchPaperById(paperId);
+  
+  // Format date function
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('zh-CN', { 
@@ -40,21 +43,13 @@ export default function PaperDetailPage({ params }: PaperDetailPageProps) {
     });
   };
 
-  // 处理原文链接点击
-  const handleOriginalLinkClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (paper) {
-      window.open(paper.url, '_blank', 'noopener,noreferrer');
-    }
-  };
-
   if (!paper) {
     return (
       <div className="flex min-h-screen flex-col">
         <Navbar />
         <main className="flex-1 container py-12">
           <div className="flex justify-center items-center h-96">
-            <p className="text-muted-foreground">正在加载论文详情...</p>
+            <p className="text-muted-foreground">论文未找到或正在加载中...</p>
           </div>
         </main>
       </div>
@@ -79,7 +74,7 @@ export default function PaperDetailPage({ params }: PaperDetailPageProps) {
           <div className="lg:col-span-2 space-y-6">
             <div>
               <div className="flex space-x-2 mb-2">
-                {paper.categories.map(category => (
+                {paper.categories.map((category: string) => (
                   <Badge key={category} variant="secondary">
                     {category}
                   </Badge>
@@ -100,25 +95,14 @@ export default function PaperDetailPage({ params }: PaperDetailPageProps) {
               </div>
               
               <div className="flex space-x-2 mb-8">
-                <Button 
-                  className="gap-1"
-                  onClick={handleOriginalLinkClick}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  查看原文
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="gap-1"
-                  onClick={() => setIsBookmarked(!isBookmarked)}
-                >
-                  <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-current' : ''}`} />
-                  {isBookmarked ? '已收藏' : '收藏'}
-                </Button>
-                <Button variant="outline" className="gap-1">
-                  <Share2 className="h-4 w-4" />
-                  分享
-                </Button>
+                <a href={paper.url} target="_blank" rel="noopener noreferrer">
+                  <Button className="gap-1">
+                    <ExternalLink className="h-4 w-4" />
+                    查看原文
+                  </Button>
+                </a>
+                <ClientBookmarkButton paperId={paperId} />
+                <ClientShareButton paper={paper} />
               </div>
             </div>
 
@@ -135,13 +119,15 @@ export default function PaperDetailPage({ params }: PaperDetailPageProps) {
               <h2 className="text-xl font-semibold mb-4">相关链接</h2>
               <ul className="space-y-2">
                 <li>
-                  <button 
-                    onClick={handleOriginalLinkClick}
+                  <a 
+                    href={paper.url}
+                    target="_blank" 
+                    rel="noopener noreferrer"
                     className="text-primary hover:underline flex items-center"
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
                     arXiv原文链接
-                  </button>
+                  </a>
                 </li>
                 {paper.doi && (
                   <li>
@@ -190,4 +176,18 @@ export default function PaperDetailPage({ params }: PaperDetailPageProps) {
       </main>
     </div>
   );
+}
+
+// Helper function for fetching paper data
+async function fetchPaperById(paperId: string): Promise<Paper | null> {
+  try {
+    // Replace with your actual data fetching logic
+    // For example, fetch from an API or database
+    const response = await fetch(`/api/papers/${paperId}`);
+    if (!response.ok) throw new Error('Failed to fetch paper');
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching paper:', error);
+    return null;
+  }
 } 
