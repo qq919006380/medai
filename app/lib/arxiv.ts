@@ -2,7 +2,7 @@ import axios from 'axios';
 import { XMLParser } from 'fast-xml-parser';
 import { Paper, PaperCategory } from '../atoms/paperAtoms';
 
-const BASE_URL = 'http://export.arxiv.org/api/query';
+const BASE_URL = 'https://export.arxiv.org/api/query';
 
 // 医疗AI相关的搜索关键词
 const MEDICAL_AI_KEYWORDS = [
